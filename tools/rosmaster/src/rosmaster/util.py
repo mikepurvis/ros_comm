@@ -41,15 +41,17 @@ try:
 except ImportError:
     from urlparse import urlparse
 try:
-    from xmlrpc.client import ServerProxy
+    from urllib.parse import splittype
 except ImportError:
-    from xmlrpclib import ServerProxy
+    from urllib import splittype
+
+import rosgraph.xmlrpc
 
 _proxies = {} #cache ServerProxys
 def xmlrpcapi(uri):
     """
     @return: instance for calling remote server or None if not a valid URI
-    @rtype: xmlrpc.client.ServerProxy
+    @rtype: rosgraph.xmlrpc.ServerProxy
     """
     if uri is None:
         return None
@@ -57,7 +59,7 @@ def xmlrpcapi(uri):
     if not uriValidate[0] or not uriValidate[1]:
         return None
     if not uri in _proxies:
-        _proxies[uri] = ServerProxy(uri)
+        _proxies[uri] = rosgraph.xmlrpc.ServerProxy(uri)
     return _proxies[uri]
 
 
