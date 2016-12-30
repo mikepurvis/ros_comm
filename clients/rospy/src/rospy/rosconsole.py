@@ -135,6 +135,21 @@ def _rosconsole_cmd_get(argv):
     print(logger_level._current_levels[args[1]])
 
 
+def _get_cmd_echo_optparse():
+    from optparse import OptionParser
+
+    usage = "usage: %prog echo [node|logger]"
+    parser = OptionParser(usage=usage, prog=NAME)
+
+    return parser
+
+
+def _rosconsole_cmd_echo(argv):
+    args = argv[2:]
+    parser = _get_cmd_get_optparse()
+    options, args = parser.parse_args(args)
+
+
 def _fullusage():
     print("""rosconsole is a command-line tool for configuring the logger level of ROS nodes.
 
