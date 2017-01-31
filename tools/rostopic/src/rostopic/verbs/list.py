@@ -34,8 +34,10 @@ from __future__ import division, print_function
 
 import rosgraph
 import rospy
-from rostopic import NAME
+from rostopic import NAME, Verb
+from rostopic.exceptions import ROSTopicIOException
 from rostopic.util import master_get_topic_types
+import socket
 
 
 def _rostopic_list_bag(bag_file, topic=None):
@@ -173,6 +175,7 @@ def _rostopic_list(topic, verbose=False,
             topic_ns = rosgraph.names.make_global_ns(topic)
             subs = (x for x in subs if x[0] == topic or x[0].startswith(topic_ns))
             pubs = (x for x in pubs if x[0] == topic or x[0].startswith(topic_ns))
+            print(list(subs), list(pubs), topic)
 
     except socket.error:
         raise ROSTopicIOException("Unable to communicate with master!")
@@ -192,47 +195,50 @@ def _rostopic_list(topic, verbose=False,
                            publishers_only, subscribers_only,
                            verbose)
 
-def _rostopic_cmd_list(argv):
+class List(Verb):
     """
     Command-line parsing for 'rostopic list' command.
     """
-    args = argv[2:]
-    from optparse import OptionParser
-    parser = OptionParser(usage="usage: %prog list [/namespace]", prog=NAME)
-    parser.add_option("-b", "--bag",
-                      dest="bag", default=None,
-                      help="list topics in .bag file", metavar="BAGFILE")
-    parser.add_option("-v", "--verbose",
-                      dest="verbose", default=False,action="store_true",
-                      help="list full details about each topic")
-    parser.add_option("-p",
-                      dest="publishers", default=False,action="store_true",
-                      help="list only publishers")
-    parser.add_option("-s",
-                      dest="subscribers", default=False,action="store_true",
-                      help="list only subscribers")
-    parser.add_option("--host", dest="hostname", default=False, action="store_true",
-                      help="group by host name")
+    def get_arg_parser(self):
+        from optparse import OptionParser
+        parser = OptionParser(usage="usage: %prog list [/namespace]", prog=NAME)
+        parser.add_option("-b", "--bag",
+                          dest="bag", default=None,
+                          help="list topics in .bag file", metavar="BAGFILE")
+        parser.add_option("-v", "--verbose",
+                          dest="verbose", default=False,action="store_true",
+                          help="list full details about each topic")
+        parser.add_option("-p",
+                          dest="publishers", default=False,action="store_true",
+                          help="list only publishers")
+        parser.add_option("-s",
+                          dest="subscribers", default=False,action="store_true",
+                          help="list only subscribers")
+        parser.add_option("--host", dest="hostname", default=False, action="store_true",
+                          help="group by host name")
+        return parser
 
-    (options, args) = parser.parse_args(args)
-    topic = None
+    def invoke(self, parser_result):
+        options, args = parser_result
+        topic = None
 
-    if len(args) == 1:
-        topic = rosgraph.names.script_resolve_name('rostopic', args[0])
-    elif len(args) > 1:
-        parser.error("you may only specify one input topic")
-    if options.bag:
-        if options.subscribers:
-            parser.error("-s option is not valid with bags")
-        elif options.publishers:
-            parser.error("-p option is not valid with bags")
-        elif options.hostname:
-            parser.error("--host option is not valid with bags")
-        _rostopic_list_bag(options.bag, topic)
-    else:
-        if options.subscribers and options.publishers:
-            parser.error("you may only specify one of -p, -s")
+        if len(args) == 1:
+            topic = rosgraph.names.script_resolve_name('rostopic', args[0])
+        elif len(args) > 1:
+            parser.error("you may only specify one input topic")
+        if options.bag:
+            if options.subscribers:
+                parser.error("-s option is not valid with bags")
+            elif options.publishers:
+                parser.error("-p option is not valid with bags")
+            elif options.hostname:
+                parser.error("--host option is not valid with bags")
+            _rostopic_list_bag(options.bag, topic)
+        else:
+            if options.subscribers and options.publishers:
+                parser.error("you may only specify one of -p, -s")
 
-        exitval = _rostopic_list(topic, verbose=options.verbose, subscribers_only=options.subscribers, publishers_only=options.publishers, group_by_host=options.hostname) or 0
-        if exitval != 0:
-            sys.exit(exitval)
+            exitval = _rostopic_list(topic, verbose=options.verbose, subscribers_only=options.subscribers,
+                                     publishers_only=options.publishers, group_by_host=options.hostname) or 0
+            if exitval != 0:
+                sys.exit(exitval)

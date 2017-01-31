@@ -50,60 +50,89 @@ import rospy
 from rostopic.exceptions import ROSTopicException
 
 
-def _optparse_topic_only(cmd, argv):
-    args = argv[2:]
-    from optparse import OptionParser
-    parser = OptionParser(usage="usage: %%prog %s /topic"%cmd, prog=NAME)
-    (options, args) = parser.parse_args(args)
-    if len(args) == 0:
-        parser.error("topic must be specified")
-    if len(args) > 1:
-        parser.error("you may only specify one input topic")
-    return rosgraph.names.script_resolve_name('rostopic', args[0])
+class Verb(object):
+    """
+    Base class for the verbs which implement rostopic's functionality.
+    """
 
+    def get_arg_parser(self):
+        raise NotImplementedError
 
-def _fullusage():
+    def invoke(self, parser_result):
+        raise NotImplementedError
+
+def get_plugins():
+    from rospkg import RosPack
+    from rospkg.common import PACKAGE_FILE
+    from catkin_pkg.package import parse_package, InvalidPackage
+    from xml.etree import ElementTree
+
+    rp = RosPack()
+    plugins = []
+    for package_name in rp.list():
+        package_path = rp.get_path(package_name)
+        package_file_path = os.path.join(package_path, PACKAGE_FILE)
+        if os.path.isfile(package_file_path):
+            package = parse_package(package_file_path)
+            for export in package.exports:
+                if export.tagname != 'rostopic':
+                    continue
+                plugin_xml_path = export.attributes['plugin'].replace('${prefix}', package_path)
+                plugin_xml_tree = ElementTree.parse(plugin_xml_path)
+                for plugin_xml_class in plugin_xml_tree.findall('./class'):
+                    plugins.append((
+                        plugin_xml_class.attrib['name'],
+                        plugin_xml_class.attrib['type'],
+                        plugin_xml_class.attrib['base_class_type'],
+                        plugin_xml_class.find('description').text))
+    return plugins
+
+def print_usage(plugins):
+    verb_plugins = [ v for v in plugins if v[2] == 'rostopic::Verb' ]
     print("""rostopic is a command-line tool for printing information about ROS Topics.
 
-Commands:
-\trostopic bw\tdisplay bandwidth used by topic
-\trostopic delay\tdisplay delay of topic from timestamp in header
-\trostopic echo\tprint messages to screen
-\trostopic find\tfind topics by type
-\trostopic hz\tdisplay publishing rate of topic
-\trostopic info\tprint information about active topic
-\trostopic list\tlist active topics
-\trostopic pub\tpublish data to topic
-\trostopic type\tprint topic or field type
+Available verbs:""")
 
-Type rostopic <command> -h for more detailed usage, e.g. 'rostopic echo -h'
+    for name, type, base_class_type, description in verb_plugins:
+        print("\trostopic %s\t%s" % (name, description))
+
+    print("""
+Type rostopic <verb> -h for more detailed usage, e.g. 'rostopic echo -h'
 """)
     sys.exit(getattr(os, 'EX_USAGE', 1))
 
 
-from rostopic.verbs.echo import _rostopic_cmd_echo
-from rostopic.verbs.hz import _rostopic_cmd_hz
-from rostopic.verbs.type import _rostopic_cmd_type
-from rostopic.verbs.list import _rostopic_cmd_list
-from rostopic.verbs.info import _rostopic_cmd_info
-from rostopic.verbs.pub import _rostopic_cmd_pub
-from rostopic.verbs.bw import _rostopic_cmd_bw
-from rostopic.verbs.find import _rostopic_cmd_find
-from rostopic.verbs.delay import _rostopic_cmd_delay
+#from rostopic.verbs.echo import _rostopic_cmd_echo
+#from rostopic.verbs.hz import _rostopic_cmd_hz
+#from rostopic.verbs.type import _rostopic_cmd_type
+#from rostopic.verbs.list import List
+#from rostopic.verbs.info import _rostopic_cmd_info
+#from rostopic.verbs.pub import _rostopic_cmd_pub
+#from rostopic.verbs.bw import _rostopic_cmd_bw
+#from rostopic.verbs.find import _rostopic_cmd_find
+#from rostopic.verbs.delay import _rostopic_cmd_delay
 
 
 def rostopicmain(argv=None):
     import rosbag
     if argv is None:
-        argv=sys.argv
+        argv = sys.argv
     # filter out remapping arguments in case we are being invoked via roslaunch
     argv = rospy.myargv(argv)
+    plugins = get_plugins()
 
     # process argv
     if len(argv) == 1:
-        _fullusage()
+        print_usage(plugins)
+        return
+
     try:
+
+
         command = argv[1]
+        parser_result = verb.get_arg_parser().parse_args(argv[2:])
+        verb.invoke(parser_result)
+
         if command == 'echo':
             _rostopic_cmd_echo(argv)
         elif command == 'hz':
@@ -111,7 +140,8 @@ def rostopicmain(argv=None):
         elif command == 'type':
             _rostopic_cmd_type(argv)
         elif command == 'list':
-            _rostopic_cmd_list(argv)
+
+
         elif command == 'info':
             _rostopic_cmd_info(argv)
         elif command == 'pub':

@@ -28,6 +28,8 @@
   <run_depend>rospy</run_depend>
 
   <export>
+    <architecture_independent/>
     <rosdoc config="rosdoc.yaml"/>
+    <rostopic plugin="${prefix}/plugin.xml"/>
   </export>
 </package>

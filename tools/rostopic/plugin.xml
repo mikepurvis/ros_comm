@@ -1,0 +1,30 @@
+<library path="src">
+  <!-- rostopic verbs -->
+  <class name="bw" type="rostopic.verbs.bw.Bandwidth" base_class_type="rostopic::Verb">
+    <description>display bandwidth used by topic</description>
+  </class>
+  <class name="delay" type="rostopic.verbs.delay.Delay" base_class_type="rostopic::Verb">
+    <description>display delay of topic from timestamp in header</description>
+  </class>
+  <class name="echo" type="rostopic.verbs.list.Echo" base_class_type="rostopic::Verb">
+    <description>print messages to screen</description>
+  </class>
+  <class name="find" type="rostopic.verbs.find.Find" base_class_type="rostopic::Verb">
+    <description>find topics by type</description>
+  </class>
+  <class name="hz" type="rostopic.verbs.hz.Hz" base_class_type="rostopic::Verb">
+    <description>display publishing rate of topic</description>
+  </class>
+  <class name="info" type="rostopic.verbs.info.Info" base_class_type="rostopic::Verb">
+    <description>print information about active topic</description>
+  </class>
+  <class name="list" type="rostopic.verbs.list.List" base_class_type="rostopic::Verb">
+    <description>list active topics</description>
+  </class>
+  <class name="pub" type="rostopic.verbs.pub.Publish" base_class_type="rostopic::Verb">
+    <description>publish data to topic</description>
+  </class>
+  <class name="type" type="rostopic.verbs.type.Type" base_class_type="rostopic::Verb">
+    <description>print topic type</description>
+  </class>
+</library>

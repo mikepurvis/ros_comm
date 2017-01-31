@@ -34,7 +34,7 @@ from __future__ import division, print_function
 
 from rosgraph.names import script_resolve_name
 import rospy
-from rostopic import NAME
+from rostopic import NAME, Verb
 from rostopic.util import check_master
 from rostopic.util import get_topic_type
 from rostopic.util import sleep
@@ -124,25 +124,31 @@ def _rostopic_bw(topic, window_size=-1):
         sleep(1.0)
         rt.print_bw()
 
-def _rostopic_cmd_bw(argv=sys.argv):
-    args = argv[2:]
-    from optparse import OptionParser
-    parser = OptionParser(usage="usage: %prog bw /topic", prog=NAME)
-    parser.add_option("-w", "--window",
-                      dest="window_size", default=None,
-                      help="window size, in # of messages, for calculating rate", metavar="WINDOW")
-    options, args = parser.parse_args(args)
-    if len(args) == 0:
-        parser.error("topic must be specified")
-    if len(args) > 1:
-        parser.error("you may only specify one input topic")
-    try:
-        if options.window_size:
-            import string
-            window_size = string.atoi(options.window_size)
-        else:
-            window_size = options.window_size
-    except:
-        parser.error("window size must be an integer")
-    topic = script_resolve_name('rostopic', args[0])
-    _rostopic_bw(topic, window_size=window_size)
+class Bandwidth(Verb):
+    """
+    Command-line parsing for 'rostopic bw' command.
+    """
+    def get_arg_parser(self):
+        from optparse import OptionParser
+        parser = OptionParser(usage="usage: %prog bw /topic", prog=NAME)
+        parser.add_option("-w", "--window",
+                          dest="window_size", default=None,
+                          help="window size, in # of messages, for calculating rate", metavar="WINDOW")
+        return parser
+
+    def invoke(self, parser_result):
+        options, args = parser_result
+        if len(args) == 0:
+            parser.error("topic must be specified")
+        if len(args) > 1:
+            parser.error("you may only specify one input topic")
+        try:
+            if options.window_size:
+                import string
+                window_size = string.atoi(options.window_size)
+            else:
+                window_size = options.window_size
+        except:
+            parser.error("window size must be an integer")
+        topic = script_resolve_name('rostopic', args[0])
+        _rostopic_bw(topic, window_size=window_size)
